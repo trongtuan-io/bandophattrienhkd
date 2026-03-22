@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bản đồ phát triển HKD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --ink: #1a1a2e;
+            --ink-mid: #3d3d56;
+            --ink-soft: #5c5c7a;
+            --ink-muted: #9898ad;
+            --surface: #f5f5f0;
+            --surface-alt: #eeeee8;
+            --white: #ffffff;
+            --red: #c0392b;
+            --red-pale: #fdecea;
+            --red-hover: #a93226;
+            --green: #27864e;
+            --green-pale: #e8f5ec;
+            --accent: #2c5282;
+            --accent-hover: #1e3a5f;
+            --accent-pale: #e8eef5;
+            --orange: #d35400;
+            --orange-pale: #fdf2e9;
+            --border: #d4d4cc;
+            --border-light: #e5e5df;
+            --radius: 6px;
+            --sidebar-w: 320px;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Be Vietnam Pro', sans-serif;
+            color: var(--ink);
+            background: var(--surface);
+        }
+
+        /* ── Topbar ─────────────────────────────── */
+        .topbar {
+            height: 52px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            text-decoration: none;
+            color: var(--ink);
+        }
+        .brand span { color: var(--red); }
+
+        .topbar-nav {
+            display: flex;
+            gap: 4px;
+        }
+
+        .topbar-nav a {
+            padding: 6px 14px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink-soft);
+            text-decoration: none;
+            transition: all 0.12s;
+        }
+        .topbar-nav a:hover { background: var(--surface); color: var(--ink); }
+        .topbar-nav a.active { background: var(--accent-pale); color: var(--accent); }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--ink-mid);
+        }
+
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent-pale);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .role-tag {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+        .role-tag.admin { background: var(--red-pale); color: var(--red); }
+        .role-tag.canbo, .role-tag.nv { background: var(--orange-pale); color: var(--orange); }
+        .role-tag.kiem_duyet { background: #e8d5f5; color: #7b2d8e; }
+        .role-tag.viewer { background: var(--surface-alt); color: var(--ink-soft); }
+
+        .btn-sm {
+            padding: 6px 12px;
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid var(--border);
+            color: var(--ink-soft);
+            background: var(--white);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.12s;
+        }
+        .btn-sm:hover { border-color: var(--ink-soft); color: var(--ink); }
+
+        /* ── Layout ─────────────────────────────── */
+        .app-body {
+            position: fixed;
+            top: 52px;
+            left: 0; right: 0; bottom: 0;
+            display: flex;
+        }
+
+        /* ── Sidebar ────────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--white);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            transition: margin-left 0.25s ease;
+        }
+
+        .sidebar.collapsed {
+            margin-left: calc(-1 * var(--sidebar-w));
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-header h3 {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ink-soft);
+        }
+
+        .sidebar-toggle {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--ink-soft);
+            transition: all 0.12s;
+        }
+        .sidebar-toggle:hover { background: var(--surface); }
+
+        .sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+        }
+
+        .filter-section label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ink-muted);
+            margin-bottom: 6px;
+        }
+
+        .filter-section select,
+        .filter-section input[type="text"],
+        .filter-section input[type="month"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 13px;
+            color: var(--ink);
+            background: var(--surface);
+            outline: none;
+            transition: border-color 0.12s;
+        }
+        .filter-section select:focus,
+        .filter-section input:focus {
+            border-color: var(--accent);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-filter {
+            flex: 1;
+            padding: 8px;
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.12s;
+        }
+        .btn-filter.primary {
+            background: var(--accent);
+            color: var(--white);
+        }
+        .btn-filter.primary:hover { background: var(--accent-hover); }
+        .btn-filter.secondary {
+            background: var(--surface);
+            color: var(--ink-soft);
+            border: 1px solid var(--border);
+        }
+        .btn-filter.secondary:hover { background: var(--surface-alt); }
+
+        /* ── Stats strip ────────────────────────── */
+        .stats-strip {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-light);
+            background: var(--surface);
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .stat-chip {
+            flex: 1;
+            padding: 8px;
+            border-radius: var(--radius);
+            text-align: center;
+            background: var(--white);
+            border: 1px solid var(--border-light);
+        }
+
+        .stat-chip .num {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .stat-chip .num.green { color: var(--green); }
+        .stat-chip .num.red { color: var(--red); }
+
+        .stat-chip .lbl {
+            font-size: 10px;
+            color: var(--ink-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-top: 2px;
+        }
+
+        /* ── Map ────────────────────────────────── */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-floating-toggle {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 800;
+            width: 36px;
+            height: 36px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--ink-soft);
+        }
+        .sidebar.collapsed ~ .map-container .map-floating-toggle {
+            display: flex;
+        }
+        .map-floating-toggle:hover { background: var(--surface); }
+
+        /* ── Leaflet popup override ─────────────── */
+        .leaflet-popup-content-wrapper {
+            border-radius: var(--radius) !important;
+            padding: 0 !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+        }
+        .leaflet-popup-content {
+            margin: 0 !important;
+            min-width: 260px !important;
+        }
+        .leaflet-popup-tip {
+            box-shadow: none !important;
+            border: 1px solid var(--border) !important;
+        }
+
+        .popup-card {
+            font-family: 'Be Vietnam Pro', sans-serif;
+        }
+
+        .popup-header {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .popup-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .popup-status-dot.green { background: var(--green); }
+        .popup-status-dot.red { background: var(--red); }
+        .popup-status-dot.orange { background: var(--orange); }
+
+        .popup-header h4 {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .popup-body {
+            padding: 10px 14px;
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: 12px;
+        }
+        .popup-row .k { color: var(--ink-muted); }
+        .popup-row .v { font-weight: 500; text-align: right; max-width: 160px; }
+
+        .popup-note {
+            margin-top: 8px;
+            padding: 8px;
+            background: var(--surface);
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--ink-soft);
+            font-style: italic;
+        }
+
+        .popup-actions {
+            padding: 10px 14px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            gap: 6px;
+        }
+
+        .popup-btn {
+            flex: 1;
+            padding: 7px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            text-align: center;
+        }
+        .popup-btn.green-btn {
+            background: var(--green);
+            color: white;
+        }
+        .popup-btn.green-btn:hover { background: #1e6e3e; }
+        .popup-btn.outline-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--ink-soft);
+        }
+        .popup-btn.outline-btn:hover { background: var(--surface); }
+
+        /* ── Modal ──────────────────────────────── */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(26, 26, 46, 0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--white);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            width: 440px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(8px);
+            transition: transform 0.2s;
+        }
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 { font-size: 16px; font-weight: 600; }
+
+        .modal-close {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: var(--surface);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--ink-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-close:hover { background: var(--surface-alt); }
+
+        .modal-body { padding: 20px; }
+
+        .modal-body .form-group {
+            margin-bottom: 14px;
+        }
+        .modal-body .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ink-muted);
+            margin-bottom: 5px;
+        }
+        .modal-body .form-group input,
+        .modal-body .form-group select,
+        .modal-body .form-group textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--ink);
+            outline: none;
+        }
+        .modal-body .form-group textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+        .modal-body .form-group input:focus,
+        .modal-body .form-group select:focus,
+        .modal-body .form-group textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .modal-footer {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .btn-modal {
+            padding: 8px 18px;
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.12s;
+        }
+        .btn-modal.primary { background: var(--accent); color: white; }
+        .btn-modal.primary:hover { background: var(--accent-hover); }
+        .btn-modal.cancel { background: var(--surface); color: var(--ink-soft); border: 1px solid var(--border); }
+        .btn-modal.cancel:hover { background: var(--surface-alt); }
+
+        /* ── Toast ──────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 3000;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: var(--green); color: white; }
+        .toast.error { background: var(--red); color: white; }
+
+        /* ── Responsive ─────────────────────────── */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                z-index: 900;
+                height: 100%;
+            }
+            .sidebar.collapsed {
+                margin-left: calc(-1 * var(--sidebar-w));
+            }
+            .map-floating-toggle {
+                display: flex !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Topbar ──────────────────────────────────────── -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="/" class="brand">Bản đồ <span>HKD</span></a>
+        <nav class="topbar-nav">
+            <a href="/" class="active">Bản đồ</a>
+            {% if role in ('admin', 'canbo', 'nv', 'kiem_duyet') %}
+            <a href="/dashboard">Thống kê</a>
+            {% endif %}
+            {% if role in ('admin', 'kiem_duyet') %}
+            <a href="/duyet">Duyệt (<span id="pendingCount">0</span>)</a>
+            <a href="/lich-su-duyet">Lịch sử duyệt</a>
+            {% endif %}
+        </nav>
+    </div>
+    <div class="topbar-right">
+        {% if user %}
+            <div class="user-badge">
+                <div class="user-avatar">{{ user.full_name[0] }}</div>
+                <span>{{ user.full_name }}</span>
+                <span class="role-tag {{ role }}">
+                    {% if role == 'admin' %}Admin{% elif role == 'kiem_duyet' %}Kiểm duyệt{% elif role in ('nv', 'canbo') %}Cán bộ{% else %}Xem{% endif %}
+                </span>
+            </div>
+            {% if role == 'admin' %}
+            <button class="btn-sm" onclick="openModal('addHoModal')">+ Thêm hộ</button>
+            <button class="btn-sm" onclick="openModal('addUserModal')">+ Tài khoản</button>
+            <a href="/api/export/excel?trang_thai=all" class="btn-sm">Xuất Excel</a>
+            <a href="/api/export/pdf" target="_blank" class="btn-sm">Xuất PDF</a>
+            {% endif %}
+            {% if role in ('canbo', 'nv') %}
+            <a href="/api/export/excel?trang_thai=all" class="btn-sm">Xuất Excel</a>
+            <a href="/api/export/pdf" target="_blank" class="btn-sm">Xuất PDF</a>
+            {% endif %}
+            <a href="/logout" class="btn-sm">Đăng xuất</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── App Body ────────────────────────────────────── -->
+<div class="app-body">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Bộ lọc</h3>
+            <button class="sidebar-toggle" onclick="toggleSidebar()" title="Ẩn bộ lọc">◀</button>
+        </div>
+        <div class="sidebar-body">
+            <div class="filter-section">
+                <label>Tìm kiếm</label>
+                <input type="text" id="filterSearch" placeholder="Tên, MST, cửa hàng...">
+            </div>
+            <div class="filter-section">
+                <label>Quận / Huyện</label>
+                <select id="filterQuan">
+                    <option value="">Tất cả</option>
+                </select>
+            </div>
+            <div class="filter-section">
+                <label>Phường / Xã</label>
+                <select id="filterPhuong">
+                    <option value="">Tất cả</option>
+                </select>
+            </div>
+            <div class="filter-section">
+                <label>Trạng thái</label>
+                <select id="filterTrangThai">
+                    <option value="">Tất cả</option>
+                    <option value="da_dang_ky">Đã đăng ký (Xanh)</option>
+                    <option value="cho_duyet">Chờ duyệt (Cam)</option>
+                    <option value="chua_dang_ky">Chưa đăng ký (Đỏ)</option>
+                </select>
+            </div>
+            <div class="filter-section">
+                <label>Tháng tạo</label>
+                <input type="month" id="filterThang">
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter primary" onclick="applyFilters()">Lọc</button>
+                <button class="btn-filter secondary" onclick="resetFilters()">Xóa lọc</button>
+            </div>
+        </div>
+        <div class="stats-strip">
+            <div class="stats-row">
+                <div class="stat-chip">
+                    <div class="num green" id="statGreen">0</div>
+                    <div class="lbl">Đã ĐK</div>
+                </div>
+                <div class="stat-chip">
+                    <div class="num" id="statPending" style="color:var(--orange)">0</div>
+                    <div class="lbl">Chờ duyệt</div>
+                </div>
+                <div class="stat-chip">
+                    <div class="num red" id="statRed">0</div>
+                    <div class="lbl">Chưa ĐK</div>
+                </div>
+                <div class="stat-chip">
+                    <div class="num" id="statTotal">0</div>
+                    <div class="lbl">Tổng</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Map -->
+    <div class="map-container">
+        <button class="map-floating-toggle" onclick="toggleSidebar()" title="Hiện bộ lọc">☰</button>
+        <div id="map"></div>
+    </div>
+</div>
+
+<!-- ── Modal: Thêm hộ kinh doanh ──────────────────── -->
+<div class="modal-overlay" id="addHoModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Thêm hộ kinh doanh</h3>
+            <button class="modal-close" onclick="closeModal('addHoModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Tên chủ hộ *</label>
+                <input type="text" id="newTenChuHo">
+            </div>
+            <div class="form-group">
+                <label>Tên cửa hàng</label>
+                <input type="text" id="newTenCuaHang">
+            </div>
+            <div class="form-group">
+                <label>Mã số thuế</label>
+                <input type="text" id="newMST">
+            </div>
+            <div class="form-group">
+                <label>Địa chỉ</label>
+                <input type="text" id="newDiaChi">
+            </div>
+            <div class="form-group">
+                <label>Phường / Xã</label>
+                <input type="text" id="newPhuongXa">
+            </div>
+            <div class="form-group">
+                <label>Quận / Huyện</label>
+                <input type="text" id="newQuanHuyen">
+            </div>
+            <div class="form-group">
+                <label>CCCD</label>
+                <input type="text" id="newCCCD" placeholder="Số CCCD">
+            </div>
+            <div class="form-group">
+                <label>Số điện thoại</label>
+                <input type="text" id="newSDTHo" placeholder="Số điện thoại chủ hộ">
+            </div>
+            <div class="form-group">
+                <label>Số tài khoản</label>
+                <input type="text" id="newSoTaiKhoan" placeholder="Số tài khoản ngân hàng">
+            </div>
+            <div class="form-group">
+                <label>Tọa độ (tự động từ địa chỉ)</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input type="number" step="any" id="newLat" placeholder="Vĩ độ" style="flex:1">
+                    <input type="number" step="any" id="newLng" placeholder="Kinh độ" style="flex:1">
+                    <button type="button" class="btn-modal primary" onclick="geocodeAddress()" style="padding:8px 12px;font-size:11px;white-space:nowrap">Tìm tọa độ</button>
+                </div>
+                <small id="geocodeStatus" style="color:var(--ink-muted);font-size:11px;margin-top:4px;display:block"></small>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal cancel" onclick="closeModal('addHoModal')">Hủy</button>
+            <button class="btn-modal primary" onclick="addHo()">Thêm</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal: Thêm tài khoản ──────────────────────── -->
+<div class="modal-overlay" id="addUserModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Thêm tài khoản</h3>
+            <button class="modal-close" onclick="closeModal('addUserModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Tên đăng nhập *</label>
+                <input type="text" id="newUsername">
+            </div>
+            <div class="form-group">
+                <label>Mật khẩu *</label>
+                <input type="password" id="newPassword">
+            </div>
+            <div class="form-group">
+                <label>Họ tên *</label>
+                <input type="text" id="newFullName">
+            </div>
+            <div class="form-group">
+                <label>Mã cán bộ</label>
+                <input type="text" id="newMaCanBo" placeholder="VD: CB002">
+            </div>
+            <div class="form-group">
+                <label>Số điện thoại</label>
+                <input type="text" id="newSDT" placeholder="VD: 0901234567">
+            </div>
+            <div class="form-group">
+                <label>Vai trò</label>
+                <select id="newRole">
+                    <option value="nv">Nhân viên (cán bộ)</option>
+                    <option value="kiem_duyet">Kiểm duyệt viên</option>
+                    <option value="viewer">Người dân (xem)</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Khu vực quản lý</label>
+                <input type="text" id="newKhuVuc" placeholder="Ví dụ: Ba Đình">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal cancel" onclick="closeModal('addUserModal')">Hủy</button>
+            <button class="btn-modal primary" onclick="addUser()">Tạo</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal: Gửi yêu cầu duyệt ─────── -->
+<div class="modal-overlay" id="completeModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Gửi yêu cầu duyệt</h3>
+            <button class="modal-close" onclick="closeModal('completeModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px;padding:10px;background:var(--surface);border-radius:4px;line-height:1.6">
+                <strong style="color:var(--ink)">Luồng duyệt:</strong><br>
+                1. Bạn nhấn <strong>Gửi duyệt</strong> &rarr; hộ sẽ gắn tên bạn<br>
+                2. Hộ chuyển sang <strong style="color:var(--orange)">Cam (Chờ duyệt)</strong><br>
+                3. Kiểm duyệt viên duyệt &rarr; <strong style="color:var(--green)">Xanh (Hoàn thành)</strong> &amp; bạn được +1 điểm
+            </div>
+            <div class="form-group">
+                <label>Số tài khoản * <small style="color:var(--red)">(bắt buộc)</small></label>
+                <input type="text" id="completeSoTaiKhoan" placeholder="Nhập số tài khoản ngân hàng">
+            </div>
+            <div class="form-group">
+                <label>Ghi chú</label>
+                <textarea id="completeGhiChu" placeholder="Ghi chú thêm..."></textarea>
+            </div>
+            <input type="hidden" id="completeHoId">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal cancel" onclick="closeModal('completeModal')">Hủy</button>
+            <button class="btn-modal primary" onclick="confirmComplete()" style="background:var(--green)">Gửi duyệt</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ── Modal: Sửa thông tin hộ KD ─────────────────── -->
+<div class="modal-overlay" id="editHoModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Sửa thông tin hộ kinh doanh</h3>
+            <button class="modal-close" onclick="closeModal('editHoModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Tên chủ hộ <small style="color:var(--ink-muted)">(không thể sửa)</small></label>
+                <input type="text" id="editTenChuHo" readonly style="background:#eee;cursor:not-allowed">
+            </div>
+            <div class="form-group">
+                <label>MST <small style="color:var(--ink-muted)">(không thể sửa)</small></label>
+                <input type="text" id="editMST" readonly style="background:#eee;cursor:not-allowed">
+            </div>
+            <div class="form-group">
+                <label>Tên cửa hàng</label>
+                <input type="text" id="editTenCuaHang">
+            </div>
+            <div class="form-group">
+                <label>Địa chỉ</label>
+                <input type="text" id="editDiaChi">
+            </div>
+            <div class="form-group">
+                <label>Phường / Xã</label>
+                <input type="text" id="editPhuongXa">
+            </div>
+            <div class="form-group">
+                <label>Quận / Huyện</label>
+                <input type="text" id="editQuanHuyen">
+            </div>
+            <div class="form-group">
+                <label>CCCD</label>
+                <input type="text" id="editCCCD">
+            </div>
+            <div class="form-group">
+                <label>Số điện thoại</label>
+                <input type="text" id="editSDT">
+            </div>
+            <div class="form-group">
+                <label>Số tài khoản</label>
+                <input type="text" id="editSoTaiKhoan">
+            </div>
+            <div class="form-group">
+                <label>Tọa độ</label>
+                <div style="display:flex;gap:8px">
+                    <input type="number" step="any" id="editLat" placeholder="Vĩ độ" style="flex:1">
+                    <input type="number" step="any" id="editLng" placeholder="Kinh độ" style="flex:1">
+                </div>
+            </div>
+            <input type="hidden" id="editHoId">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal cancel" onclick="closeModal('editHoModal')">Hủy</button>
+            <button class="btn-modal primary" onclick="saveEditHo()">Lưu</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal: Ghi chú & Upload ────────────────────── -->
+<div class="modal-overlay" id="noteModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Ghi chú & Hình ảnh</h3>
+            <button class="modal-close" onclick="closeModal('noteModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Ghi chú</label>
+                <textarea id="noteText" placeholder="Chủ hộ hẹn tuần sau lên làm thủ tục..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Upload hình ảnh hiện trường</label>
+                <input type="file" id="noteFile" accept="image/*">
+            </div>
+            <input type="hidden" id="noteHoId">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal cancel" onclick="closeModal('noteModal')">Hủy</button>
+            <button class="btn-modal primary" onclick="saveNote()">Lưu</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Toast ───────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const ROLE = '{{ role }}';
+let map, markersLayer;
+let allData = [];
+let filtersData = { quan_huyen: [], phuong_xa: [] };
+
+// ── Map init ──────────────────────────────────
+function initMap() {
+    map = L.map('map', {
+        zoomControl: false
+    }).setView([19.3200, 105.4400], 14);
+
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 19
+    }).addTo(map);
+
+    markersLayer = L.layerGroup().addTo(map);
+}
+
+// ── Custom markers ────────────────────────────
+function createMarkerIcon(status) {
+    const color = status === 'da_dang_ky' ? '#27864e' : (status === 'cho_duyet' ? '#d35400' : '#c0392b');
+    const svg = `
+        <svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.27 21.73 0 14 0z" fill="${color}"/>
+            <circle cx="14" cy="13" r="5" fill="white" opacity="0.9"/>
+        </svg>`;
+    return L.divIcon({
+        html: svg,
+        iconSize: [28, 36],
+        iconAnchor: [14, 36],
+        popupAnchor: [0, -36],
+        className: ''
+    });
+}
+
+// ── Load data ─────────────────────────────────
+async function loadData(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const resp = await fetch('/api/ho' + (qs ? '?' + qs : ''));
+    allData = await resp.json();
+    renderMarkers();
+    updateStats();
+}
+
+function renderMarkers() {
+    markersLayer.clearLayers();
+    allData.forEach(ho => {
+        const marker = L.marker([ho.lat, ho.lng], {
+            icon: createMarkerIcon(ho.trang_thai)
+        });
+        marker.bindPopup(() => buildPopup(ho), { maxWidth: 300 });
+        markersLayer.addLayer(marker);
+    });
+
+    if (allData.length > 0) {
+        const bounds = L.latLngBounds(allData.map(h => [h.lat, h.lng]));
+        map.fitBounds(bounds, { padding: [50, 50] });
+    }
+}
+
+function buildPopup(ho) {
+    const isGreen = ho.trang_thai === 'da_dang_ky';
+    const isPending = ho.trang_thai === 'cho_duyet';
+    const statusText = isGreen ? 'Đã đăng ký' : (isPending ? 'Chờ duyệt' : 'Chưa đăng ký');
+    const dotClass = isGreen ? 'green' : (isPending ? 'orange' : 'red');
+    const statusColor = isGreen ? 'var(--green)' : (isPending ? 'var(--orange)' : 'var(--red)');
+
+    let html = `
+    <div class="popup-card">
+        <div class="popup-header">
+            <div class="popup-status-dot ${dotClass}"></div>
+            <h4>${ho.ten_cua_hang || ho.ten_chu_ho}</h4>
+        </div>
+        <div class="popup-body">
+            <div class="popup-row"><span class="k">Chủ hộ</span><span class="v">${ho.ten_chu_ho}</span></div>
+            ${ho.mst ? `<div class="popup-row"><span class="k">MST</span><span class="v">${ho.mst}</span></div>` : ''}
+            <div class="popup-row"><span class="k">Địa chỉ</span><span class="v">${ho.dia_chi || '—'}</span></div>
+            <div class="popup-row"><span class="k">Khu vực</span><span class="v">${ho.phuong_xa}, ${ho.quan_huyen}</span></div>
+            ${ho.cccd ? `<div class="popup-row"><span class="k">CCCD</span><span class="v">${ho.cccd}</span></div>` : ''}
+            ${ho.sdt ? `<div class="popup-row"><span class="k">SĐT</span><span class="v">${ho.sdt}</span></div>` : ''}
+            ${ho.so_tai_khoan ? `<div class="popup-row"><span class="k">Số TK</span><span class="v">${ho.so_tai_khoan}</span></div>` : ''}
+            <div class="popup-row"><span class="k">Trạng thái</span><span class="v" style="color:${statusColor}">${statusText}</span></div>
+            ${(isGreen || isPending) && ho.nhan_vien_ten ? `<div class="popup-row"><span class="k">Nhân viên</span><span class="v" style="color:var(--accent)">${ho.nhan_vien_ten} (${ho.nhan_vien_ma || ''})</span></div>` : ''}
+            ${isPending && ho.nguoi_cap_nhat_ten ? `<div class="popup-row"><span class="k">Người gửi</span><span class="v" style="color:var(--orange)">${ho.nguoi_cap_nhat_ten}</span></div>` : ''}
+            ${ho.ghi_chu ? `<div class="popup-note">${ho.ghi_chu}</div>` : ''}
+        </div>`;
+
+    if (ROLE === 'admin' || ROLE === 'nv' || ROLE === 'canbo' || ROLE === 'kiem_duyet') {
+        html += `<div class="popup-actions">`;
+        if (ho.trang_thai === 'chua_dang_ky') {
+            html += `<button class="popup-btn green-btn" onclick="openCompleteModal(${ho.id})" title="Chọn nhân viên và gửi yêu cầu duyệt cho kiểm duyệt viên">Gửi duyệt</button>`;
+        } else if (isPending && (ROLE === 'admin' || ROLE === 'kiem_duyet')) {
+            html += `<button class="popup-btn green-btn" onclick="approveHo(${ho.id})">Duyệt</button>`;
+            html += `<button class="popup-btn outline-btn" style="color:var(--red);border-color:var(--red)" onclick="rejectHo(${ho.id})">Từ chối</button>`;
+        } else if (isGreen && (ROLE === 'admin' || ROLE === 'kiem_duyet')) {
+            html += `<button class="popup-btn outline-btn" onclick="confirmUnregister(${ho.id})">Đánh chưa ĐK</button>`;
+        }
+        html += `<button class="popup-btn outline-btn" onclick="openNoteModal(${ho.id}, '${(ho.ghi_chu || '').replace(/'/g, "\\'")}')">Ghi chú</button>`;
+        html += `<button class="popup-btn outline-btn" onclick="openEditModal(${ho.id})">Sửa</button>`;
+        html += `</div>`;
+    }
+
+    html += '</div>';
+    return html;
+}
+
+// ── Update status ─────────────────────────────
+async function updateStatus(hoId, trangThai) {
+    const resp = await fetch(`/api/ho/${hoId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trang_thai: trangThai })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+        showToast('Đã cập nhật trạng thái', 'success');
+        map.closePopup();
+        applyFilters();
+    } else {
+        showToast(data.error || 'Lỗi cập nhật', 'error');
+    }
+}
+
+// ── Filters ───────────────────────────────────
+async function loadFilters() {
+    const resp = await fetch('/api/filters');
+    filtersData = await resp.json();
+
+    const quanSel = document.getElementById('filterQuan');
+    filtersData.quan_huyen.forEach(q => {
+        quanSel.innerHTML += `<option value="${q}">${q}</option>`;
+    });
+
+    const phuongSel = document.getElementById('filterPhuong');
+    filtersData.phuong_xa.forEach(p => {
+        phuongSel.innerHTML += `<option value="${p.ten}">${p.ten} (${p.quan})</option>`;
+    });
+}
+
+function applyFilters() {
+    const params = {};
+    const search = document.getElementById('filterSearch').value.trim();
+    const quan = document.getElementById('filterQuan').value;
+    const phuong = document.getElementById('filterPhuong').value;
+    const tt = document.getElementById('filterTrangThai').value;
+    const thang = document.getElementById('filterThang').value;
+
+    if (search) params.search = search;
+    if (quan) params.quan_huyen = quan;
+    if (phuong) params.phuong_xa = phuong;
+    if (tt) params.trang_thai = tt;
+    if (thang) params.thang = thang;
+
+    loadData(params);
+}
+
+function resetFilters() {
+    document.getElementById('filterSearch').value = '';
+    document.getElementById('filterQuan').value = '';
+    document.getElementById('filterPhuong').value = '';
+    document.getElementById('filterTrangThai').value = '';
+    document.getElementById('filterThang').value = '';
+    loadData();
+}
+
+function updateStats() {
+    const green = allData.filter(h => h.trang_thai === 'da_dang_ky').length;
+    const pending = allData.filter(h => h.trang_thai === 'cho_duyet').length;
+    const red = allData.filter(h => h.trang_thai === 'chua_dang_ky').length;
+    document.getElementById('statGreen').textContent = green;
+    document.getElementById('statPending').textContent = pending;
+    document.getElementById('statRed').textContent = red;
+    document.getElementById('statTotal').textContent = allData.length;
+}
+
+// ── Sidebar ───────────────────────────────────
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+    setTimeout(() => map.invalidateSize(), 300);
+}
+
+// ── Modals ────────────────────────────────────
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('active');
+    });
+});
+
+// ── Geocoding (Nominatim) ──────────────────────
+async function geocodeAddress() {
+    const diaChi = document.getElementById('newDiaChi').value.trim();
+    const phuong = document.getElementById('newPhuongXa').value.trim();
+    const quan = document.getElementById('newQuanHuyen').value.trim();
+
+    const fullAddr = [diaChi, phuong, quan, 'Nghệ An', 'Vietnam'].filter(Boolean).join(', ');
+    if (!fullAddr || fullAddr.length < 5) {
+        showToast('Vui lòng nhập địa chỉ trước', 'error');
+        return;
+    }
+
+    const status = document.getElementById('geocodeStatus');
+    status.textContent = 'Đang tìm tọa độ...';
+    status.style.color = 'var(--accent)';
+
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddr)}&limit=1`;
+        const resp = await fetch(url, {
+            headers: { 'Accept-Language': 'vi' }
+        });
+        const data = await resp.json();
+
+        if (data.length > 0) {
+            document.getElementById('newLat').value = parseFloat(data[0].lat).toFixed(6);
+            document.getElementById('newLng').value = parseFloat(data[0].lon).toFixed(6);
+            status.textContent = `Tìm thấy: ${data[0].display_name}`;
+            status.style.color = 'var(--green)';
+        } else {
+            status.textContent = 'Không tìm thấy tọa độ. Thử nhập địa chỉ chi tiết hơn hoặc nhập tọa độ thủ công.';
+            status.style.color = 'var(--red)';
+        }
+    } catch (e) {
+        status.textContent = 'Lỗi kết nối. Vui lòng nhập tọa độ thủ công.';
+        status.style.color = 'var(--red)';
+    }
+}
+
+// ── Add hộ kinh doanh ─────────────────────────
+async function addHo() {
+    const data = {
+        ten_chu_ho: document.getElementById('newTenChuHo').value,
+        ten_cua_hang: document.getElementById('newTenCuaHang').value,
+        mst: document.getElementById('newMST').value,
+        dia_chi: document.getElementById('newDiaChi').value,
+        phuong_xa: document.getElementById('newPhuongXa').value,
+        quan_huyen: document.getElementById('newQuanHuyen').value,
+        cccd: document.getElementById('newCCCD').value,
+        sdt: document.getElementById('newSDTHo').value,
+        so_tai_khoan: document.getElementById('newSoTaiKhoan').value,
+        lat: parseFloat(document.getElementById('newLat').value),
+        lng: parseFloat(document.getElementById('newLng').value),
+    };
+
+    if (!data.ten_chu_ho || !data.lat || !data.lng) {
+        showToast('Vui lòng điền tên chủ hộ và tọa độ', 'error');
+        return;
+    }
+
+    const resp = await fetch('/api/ho', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+
+    if (resp.ok) {
+        showToast('Đã thêm hộ kinh doanh', 'success');
+        closeModal('addHoModal');
+        loadData();
+    } else {
+        const err = await resp.json();
+        showToast(err.error || 'Lỗi', 'error');
+    }
+}
+
+// ── Add user ──────────────────────────────────
+async function addUser() {
+    const data = {
+        username: document.getElementById('newUsername').value,
+        password: document.getElementById('newPassword').value,
+        full_name: document.getElementById('newFullName').value,
+        ma_canbo: document.getElementById('newMaCanBo').value,
+        sdt: document.getElementById('newSDT').value,
+        role: document.getElementById('newRole').value,
+        khu_vuc: document.getElementById('newKhuVuc').value,
+    };
+
+    if (!data.username || !data.password || !data.full_name) {
+        showToast('Vui lòng điền đầy đủ thông tin', 'error');
+        return;
+    }
+
+    const resp = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+
+    if (resp.ok) {
+        showToast('Đã tạo tài khoản', 'success');
+        closeModal('addUserModal');
+    } else {
+        const err = await resp.json();
+        showToast(err.error || 'Lỗi', 'error');
+    }
+}
+
+// ── Notes & Upload ────────────────────────────
+function openNoteModal(hoId, currentNote) {
+    document.getElementById('noteHoId').value = hoId;
+    document.getElementById('noteText').value = currentNote || '';
+    document.getElementById('noteFile').value = '';
+    map.closePopup();
+    openModal('noteModal');
+}
+
+async function saveNote() {
+    const hoId = document.getElementById('noteHoId').value;
+    const ghiChu = document.getElementById('noteText').value;
+    const file = document.getElementById('noteFile').files[0];
+
+    // Save note
+    await fetch(`/api/ho/${hoId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ghi_chu: ghiChu })
+    });
+
+    // Upload image if present
+    if (file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        await fetch(`/api/ho/${hoId}/upload`, { method: 'POST', body: fd });
+    }
+
+    showToast('Đã lưu ghi chú', 'success');
+    closeModal('noteModal');
+    applyFilters();
+}
+
+// ── Toast ─────────────────────────────────────
+function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = `toast ${type} show`;
+    setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ── Search on Enter ───────────────────────────
+document.getElementById('filterSearch').addEventListener('keydown', e => {
+    if (e.key === 'Enter') applyFilters();
+});
+
+
+// ── Confirm unregister ────────────────────────
+function confirmUnregister(hoId) {
+    if (!confirm('Xác nhận đánh chưa đăng ký cho hộ kinh doanh này?')) return;
+    updateStatus(hoId, 'chua_dang_ky');
+}
+
+// ── Edit hộ kinh doanh ───────────────────────
+function openEditModal(hoId) {
+    const ho = allData.find(h => h.id === hoId);
+    if (!ho) return;
+    document.getElementById('editHoId').value = ho.id;
+    document.getElementById('editTenChuHo').value = ho.ten_chu_ho || '';
+    document.getElementById('editMST').value = ho.mst || '';
+    document.getElementById('editTenCuaHang').value = ho.ten_cua_hang || '';
+    document.getElementById('editDiaChi').value = ho.dia_chi || '';
+    document.getElementById('editPhuongXa').value = ho.phuong_xa || '';
+    document.getElementById('editQuanHuyen').value = ho.quan_huyen || '';
+    document.getElementById('editCCCD').value = ho.cccd || '';
+    document.getElementById('editSDT').value = ho.sdt || '';
+    document.getElementById('editSoTaiKhoan').value = ho.so_tai_khoan || '';
+    document.getElementById('editLat').value = ho.lat || '';
+    document.getElementById('editLng').value = ho.lng || '';
+    map.closePopup();
+    openModal('editHoModal');
+}
+
+async function saveEditHo() {
+    const hoId = document.getElementById('editHoId').value;
+    const data = {
+        ten_cua_hang: document.getElementById('editTenCuaHang').value,
+        dia_chi: document.getElementById('editDiaChi').value,
+        phuong_xa: document.getElementById('editPhuongXa').value,
+        quan_huyen: document.getElementById('editQuanHuyen').value,
+        cccd: document.getElementById('editCCCD').value,
+        sdt: document.getElementById('editSDT').value,
+        so_tai_khoan: document.getElementById('editSoTaiKhoan').value,
+        lat: parseFloat(document.getElementById('editLat').value),
+        lng: parseFloat(document.getElementById('editLng').value),
+    };
+
+    const resp = await fetch(`/api/ho/${hoId}/edit`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+
+    if (resp.ok) {
+        showToast('Đã cập nhật thông tin', 'success');
+        closeModal('editHoModal');
+        applyFilters();
+    } else {
+        const err = await resp.json();
+        showToast(err.error || 'Lỗi cập nhật', 'error');
+    }
+}
+
+function openCompleteModal(hoId) {
+    const ho = allData.find(h => h.id === hoId);
+    document.getElementById('completeHoId').value = hoId;
+    document.getElementById('completeGhiChu').value = '';
+    document.getElementById('completeSoTaiKhoan').value = (ho && ho.so_tai_khoan) || '';
+    map.closePopup();
+    openModal('completeModal');
+}
+
+async function confirmComplete() {
+    const hoId = document.getElementById('completeHoId').value;
+    const ghiChu = document.getElementById('completeGhiChu').value;
+    const soTaiKhoan = document.getElementById('completeSoTaiKhoan').value.trim();
+
+    if (!soTaiKhoan) {
+        showToast('Vui lòng nhập số tài khoản trước khi gửi duyệt', 'error');
+        document.getElementById('completeSoTaiKhoan').focus();
+        return;
+    }
+
+    const resp = await fetch(`/api/ho/${hoId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            trang_thai: 'da_dang_ky',
+            ghi_chu: ghiChu || null,
+            so_tai_khoan: soTaiKhoan
+        })
+    });
+
+    if (resp.ok) {
+        const result = await resp.json();
+        showToast(result.message || 'Đã gửi yêu cầu duyệt', 'success');
+        closeModal('completeModal');
+        applyFilters();
+        loadPendingCount();
+    } else {
+        const err = await resp.json();
+        showToast(err.error || 'Lỗi', 'error');
+    }
+}
+
+// ── Approve / Reject ─────────────────────────
+async function approveHo(hoId) {
+    if (!confirm('Xác nhận duyệt hộ kinh doanh này?')) return;
+    const resp = await fetch(`/api/ho/${hoId}/duyet`, { method: 'POST' });
+    const data = await resp.json();
+    if (resp.ok) {
+        showToast(data.message, 'success');
+        map.closePopup();
+        applyFilters();
+        loadPendingCount();
+    } else {
+        showToast(data.error || 'Lỗi', 'error');
+    }
+}
+
+async function rejectHo(hoId) {
+    const ly_do = prompt('Lý do từ chối (tùy chọn):');
+    if (ly_do === null) return;
+    const resp = await fetch(`/api/ho/${hoId}/tu-choi`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ly_do: ly_do })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+        showToast(data.message, 'success');
+        map.closePopup();
+        applyFilters();
+        loadPendingCount();
+    } else {
+        showToast(data.error || 'Lỗi', 'error');
+    }
+}
+
+// ── Load pending count ───────────────────────
+async function loadPendingCount() {
+    if (ROLE !== 'admin' && ROLE !== 'kiem_duyet') return;
+    try {
+        const resp = await fetch('/api/ho/cho-duyet');
+        if (resp.ok) {
+            const data = await resp.json();
+            const el = document.getElementById('pendingCount');
+            if (el) el.textContent = data.length;
+        }
+    } catch (e) {}
+}
+
+
+// ── Init ──────────────────────────────────────
+initMap();
+loadFilters();
+loadData();
+loadPendingCount();
+</script>
+</body>
+</html>

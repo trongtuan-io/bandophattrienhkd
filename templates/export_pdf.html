@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách hộ chưa đăng ký</title>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            color: #1a1a2e;
+            padding: 30px;
+            font-size: 12px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #c0392b;
+            padding-bottom: 16px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #c0392b;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #5c5c7a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        thead th {
+            background: #2c5282;
+            color: white;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        tbody td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #d4d4cc;
+            font-size: 12px;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f5f5f0;
+        }
+
+        .footer {
+            text-align: right;
+            font-size: 11px;
+            color: #9898ad;
+            margin-top: 20px;
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            padding: 10px 24px;
+            background: #2c5282;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .print-btn:hover { background: #1e3a5f; }
+
+        @media print {
+            .print-btn { display: none; }
+            body { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">In / Lưu PDF</button>
+
+    <div class="header">
+        <h1>DANH SÁCH HỘ KINH DOANH CHƯA ĐĂNG KÝ</h1>
+        <p>Ngày xuất: {{ today.strftime('%d/%m/%Y') }} &mdash; Tổng cộng: {{ rows|length }} hộ</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Tên chủ hộ</th>
+                <th>Tên cửa hàng</th>
+                <th>MST</th>
+                <th>Địa chỉ</th>
+                <th>Phường/Xã</th>
+                <th>Quận/Huyện</th>
+                <th>Ghi chú</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ r.ten_chu_ho }}</td>
+                <td>{{ r.ten_cua_hang or '' }}</td>
+                <td>{{ r.mst or '' }}</td>
+                <td>{{ r.dia_chi or '' }}</td>
+                <td>{{ r.phuong_xa or '' }}</td>
+                <td>{{ r.quan_huyen or '' }}</td>
+                <td>{{ r.ghi_chu or '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        BanDoThue &mdash; Hệ thống quản lý hộ kinh doanh
+    </div>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thống kê — Bản đồ phát triển HKD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --ink: #1a1a2e;
+            --ink-mid: #3d3d56;
+            --ink-soft: #5c5c7a;
+            --ink-muted: #9898ad;
+            --surface: #f5f5f0;
+            --surface-alt: #eeeee8;
+            --white: #ffffff;
+            --red: #c0392b;
+            --red-pale: #fdecea;
+            --green: #27864e;
+            --green-pale: #e8f5ec;
+            --accent: #2c5282;
+            --accent-hover: #1e3a5f;
+            --accent-pale: #e8eef5;
+            --orange: #d35400;
+            --orange-pale: #fdf2e9;
+            --border: #d4d4cc;
+            --border-light: #e5e5df;
+            --radius: 6px;
+        }
+
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            color: var(--ink);
+            background: var(--surface);
+            min-height: 100vh;
+        }
+
+        /* ── Topbar ─────────────────────────────── */
+        .topbar {
+            height: 52px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            text-decoration: none;
+            color: var(--ink);
+        }
+        .brand span { color: var(--red); }
+
+        .topbar-nav {
+            display: flex;
+            gap: 4px;
+        }
+
+        .topbar-nav a {
+            padding: 6px 14px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink-soft);
+            text-decoration: none;
+            transition: all 0.12s;
+        }
+        .topbar-nav a:hover { background: var(--surface); color: var(--ink); }
+        .topbar-nav a.active { background: var(--accent-pale); color: var(--accent); }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--ink-mid);
+        }
+
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent-pale);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .role-tag {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+        .role-tag.admin { background: var(--red-pale); color: var(--red); }
+        .role-tag.canbo, .role-tag.nv { background: var(--orange-pale); color: var(--orange); }
+        .role-tag.kiem_duyet { background: #e8d5f5; color: #7b2d8e; }
+
+        .btn-sm {
+            padding: 6px 12px;
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid var(--border);
+            color: var(--ink-soft);
+            background: var(--white);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.12s;
+        }
+        .btn-sm:hover { border-color: var(--ink-soft); color: var(--ink); }
+
+        /* ── Dashboard ──────────────────────────── */
+        .dashboard {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 72px 24px 40px;
+        }
+
+        .dashboard-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            letter-spacing: -0.3px;
+        }
+
+        /* ── Summary cards ──────────────────────── */
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+
+        .summary-card .label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ink-muted);
+            margin-bottom: 6px;
+        }
+
+        .summary-card .value {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+        .summary-card .value.green { color: var(--green); }
+        .summary-card .value.red { color: var(--red); }
+        .summary-card .value.orange { color: var(--orange); }
+
+        .summary-card .sub {
+            font-size: 12px;
+            color: var(--ink-muted);
+            margin-top: 4px;
+        }
+
+        /* ── Charts grid ────────────────────────── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .chart-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+
+        .chart-card h3 {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ink-soft);
+            margin-bottom: 16px;
+        }
+
+        .chart-wrap {
+            position: relative;
+            max-width: 220px;
+            margin: 0 auto;
+        }
+
+        /* ── Vinh danh section ─────────────────── */
+        .vinh-danh-section {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2c5282 100%);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 24px;
+            color: white;
+        }
+
+        .vinh-danh-section h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .vinh-danh-subtitle {
+            font-size: 13px;
+            opacity: 0.7;
+            margin-bottom: 20px;
+        }
+
+        .vinh-danh-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .vinh-danh-card {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: transform 0.15s;
+        }
+        .vinh-danh-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .vinh-danh-card.top1 {
+            background: linear-gradient(135deg, rgba(249,228,183,0.25), rgba(183,121,31,0.15));
+            border-color: rgba(249,228,183,0.4);
+        }
+        .vinh-danh-card.top2 {
+            background: linear-gradient(135deg, rgba(226,232,240,0.2), rgba(90,101,119,0.1));
+            border-color: rgba(226,232,240,0.3);
+        }
+        .vinh-danh-card.top3 {
+            background: linear-gradient(135deg, rgba(252,229,211,0.2), rgba(156,90,46,0.1));
+            border-color: rgba(252,229,211,0.3);
+        }
+
+        .vinh-danh-rank {
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        .vinh-danh-card.top1 .vinh-danh-rank { color: #f9e4b7; }
+        .vinh-danh-card.top2 .vinh-danh-rank { color: #c8d0db; }
+        .vinh-danh-card.top3 .vinh-danh-rank { color: #f0c8a8; }
+
+        .vinh-danh-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .vinh-danh-ma {
+            font-size: 11px;
+            opacity: 0.6;
+        }
+
+        .vinh-danh-score {
+            margin-top: 8px;
+            font-size: 22px;
+            font-weight: 800;
+            color: #4ade80;
+        }
+
+        .vinh-danh-score-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.5;
+        }
+
+        /* ── Table ──────────────────────────────── */
+        .table-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .table-card h3 {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ink-soft);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 10px 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ink-muted);
+            background: var(--surface);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        tbody td {
+            padding: 10px 20px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: var(--surface);
+        }
+
+        .bar-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 6px;
+            background: var(--surface-alt);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+        .bar-fill.red { background: var(--red); }
+        .bar-fill.green { background: var(--green); }
+
+        .bar-pct {
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 36px;
+            text-align: right;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-dot.red { background: var(--red); }
+        .status-dot.green { background: var(--green); }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .rank-badge.gold { background: #f9e4b7; color: #b7791f; }
+        .rank-badge.silver { background: #e2e8f0; color: #5a6577; }
+        .rank-badge.bronze { background: #fce5d3; color: #9c5a2e; }
+        .rank-badge.normal { background: var(--surface); color: var(--ink-muted); }
+
+        .nv-name {
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        @media (max-width: 768px) {
+            .summary-row { grid-template-columns: repeat(2, 1fr); }
+            .charts-grid { grid-template-columns: 1fr; }
+            .vinh-danh-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Topbar ──────────────────────────────────────── -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="/" class="brand">Bản đồ <span>HKD</span></a>
+        <nav class="topbar-nav">
+            <a href="/">Bản đồ</a>
+            <a href="/dashboard" class="active">Thống kê</a>
+            {% if role in ('admin', 'kiem_duyet') %}
+            <a href="/duyet">Duyệt</a>
+            <a href="/lich-su-duyet">Lịch sử duyệt</a>
+            {% endif %}
+        </nav>
+    </div>
+    <div class="topbar-right">
+        {% if user %}
+            <div class="user-badge">
+                <div class="user-avatar">{{ user.full_name[0] }}</div>
+                <span>{{ user.full_name }}</span>
+                <span class="role-tag {{ role }}">
+                    {% if role == 'admin' %}Admin{% elif role == 'kiem_duyet' %}Kiểm duyệt{% elif role in ('nv', 'canbo') %}Cán bộ{% endif %}
+                </span>
+            </div>
+            <a href="/api/export/excel" class="btn-sm">Xuất Excel</a>
+            <a href="/logout" class="btn-sm">Đăng xuất</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Dashboard ──────────────────────────────────── -->
+<div class="dashboard">
+    <h1 class="dashboard-title">Báo cáo & Thống kê</h1>
+
+    <!-- Summary -->
+    <div class="summary-row">
+        <div class="summary-card">
+            <div class="label">Tổng hộ kinh doanh</div>
+            <div class="value" id="sumTotal">—</div>
+            <div class="sub">Trên toàn hệ thống</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Hoàn thành (Xanh)</div>
+            <div class="value green" id="sumGreen">—</div>
+            <div class="sub" id="sumGreenPct"></div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Đang tiếp cận (Cam)</div>
+            <div class="value orange" id="sumPending">—</div>
+            <div class="sub" id="sumPendingPct"></div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Chưa tiếp cận (Đỏ)</div>
+            <div class="value red" id="sumRed">—</div>
+            <div class="sub" id="sumRedPct"></div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Tỉ lệ tiếp cận</h3>
+            <div class="chart-wrap">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Theo Quận / Huyện</h3>
+            <canvas id="barChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Vinh danh Top 10 Can Bo -->
+    <div class="vinh-danh-section" id="vinhDanhSection">
+        <h2>Vinh danh Top 10 Cán bộ</h2>
+        <p class="vinh-danh-subtitle">Những cán bộ có năng suất làm việc cao nhất</p>
+        <div class="vinh-danh-grid" id="vinhDanhGrid"></div>
+    </div>
+
+    <!-- BXH Nhân viên -->
+    <div class="table-card" style="margin-bottom:24px">
+        <h3>Bảng xếp hạng nhân viên thực địa</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:50px">Hạng</th>
+                    <th>Nhân viên</th>
+                    <th>Mã NV</th>
+                    <th>Khu vực</th>
+                    <th>Số hộ đã làm</th>
+                    <th style="width:200px">Thành tích</th>
+                </tr>
+            </thead>
+            <tbody id="bxhNhanVienBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Top phường chưa ĐK -->
+    <div class="table-card">
+        <h3>Phường/Xã có tỉ lệ chưa đăng ký cao nhất</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Phường/Xã</th>
+                    <th>Quận/Huyện</th>
+                    <th>Tổng hộ</th>
+                    <th>Chưa ĐK</th>
+                    <th style="width:200px">Tỉ lệ chưa ĐK</th>
+                </tr>
+            </thead>
+            <tbody id="topPhuongBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+let pieChart, barChart;
+
+async function loadStats() {
+    const resp = await fetch('/api/thongke');
+    const data = await resp.json();
+
+    // Summary
+    document.getElementById('sumTotal').textContent = data.tong;
+    document.getElementById('sumGreen').textContent = data.da_dang_ky;
+    document.getElementById('sumPending').textContent = data.cho_duyet;
+    document.getElementById('sumRed').textContent = data.chua_dang_ky;
+
+    const greenPct = data.tong > 0 ? ((data.da_dang_ky / data.tong) * 100).toFixed(1) : 0;
+    const pendingPct = data.tong > 0 ? ((data.cho_duyet / data.tong) * 100).toFixed(1) : 0;
+    const redPct = data.tong > 0 ? ((data.chua_dang_ky / data.tong) * 100).toFixed(1) : 0;
+    document.getElementById('sumGreenPct').textContent = `${greenPct}% tổng số`;
+    document.getElementById('sumPendingPct').textContent = `${pendingPct}% tổng số`;
+    document.getElementById('sumRedPct').textContent = `${redPct}% tổng số`;
+
+    // Pie chart - 3 parts
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Hoàn thành', 'Đang tiếp cận', 'Chưa tiếp cận'],
+            datasets: [{
+                data: [data.da_dang_ky, data.cho_duyet, data.chua_dang_ky],
+                backgroundColor: ['#27864e', '#d35400', '#c0392b'],
+                borderWidth: 0,
+                borderRadius: 2,
+            }]
+        },
+        options: {
+            cutout: '65%',
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: { family: "'Be Vietnam Pro'", size: 12 },
+                        padding: 16,
+                        usePointStyle: true,
+                        pointStyleWidth: 8,
+                    }
+                }
+            }
+        }
+    });
+
+    // Bar chart
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    if (barChart) barChart.destroy();
+    barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: data.theo_quan.map(q => q.quan_huyen),
+            datasets: [
+                {
+                    label: 'Hoàn thành',
+                    data: data.theo_quan.map(q => q.da_dk),
+                    backgroundColor: '#27864e',
+                    borderRadius: 3,
+                    barPercentage: 0.7,
+                },
+                {
+                    label: 'Đang tiếp cận',
+                    data: data.theo_quan.map(q => q.cho_duyet),
+                    backgroundColor: '#d35400',
+                    borderRadius: 3,
+                    barPercentage: 0.7,
+                },
+                {
+                    label: 'Chưa tiếp cận',
+                    data: data.theo_quan.map(q => q.chua_dk),
+                    backgroundColor: '#c0392b',
+                    borderRadius: 3,
+                    barPercentage: 0.7,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: "'Be Vietnam Pro'", size: 11 } }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#e5e5df' },
+                    ticks: {
+                        font: { family: "'Be Vietnam Pro'", size: 11 },
+                        stepSize: 1,
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        font: { family: "'Be Vietnam Pro'", size: 12 },
+                        usePointStyle: true,
+                        pointStyleWidth: 8,
+                        padding: 16,
+                    }
+                }
+            }
+        }
+    });
+
+    // ── Vinh danh Top 10 Can Bo ──────────────────
+    const grid = document.getElementById('vinhDanhGrid');
+    grid.innerHTML = '';
+    if (data.top_canbo && data.top_canbo.length > 0) {
+        data.top_canbo.forEach((cb, idx) => {
+            const rank = idx + 1;
+            let cardClass = '';
+            let medal = `#${rank}`;
+            if (rank === 1) { cardClass = 'top1'; medal = '1'; }
+            else if (rank === 2) { cardClass = 'top2'; medal = '2'; }
+            else if (rank === 3) { cardClass = 'top3'; medal = '3'; }
+
+            grid.innerHTML += `
+                <div class="vinh-danh-card ${cardClass}">
+                    <div class="vinh-danh-rank">${medal}</div>
+                    <div class="vinh-danh-name">${cb.full_name}</div>
+                    <div class="vinh-danh-ma">${cb.ma_canbo || '—'} ${cb.khu_vuc ? '· ' + cb.khu_vuc : ''}</div>
+                    <div class="vinh-danh-score">${cb.diem}</div>
+                    <div class="vinh-danh-score-label">điểm</div>
+                </div>`;
+        });
+    } else {
+        document.getElementById('vinhDanhSection').style.display = 'none';
+    }
+
+    // BXH Nhan vien
+    const nvBody = document.getElementById('bxhNhanVienBody');
+    nvBody.innerHTML = '';
+    const maxNV = data.bang_xep_hang_nv.length > 0 ? Math.max(...data.bang_xep_hang_nv.map(n => n.so_ho_da_lam), 1) : 1;
+    data.bang_xep_hang_nv.forEach((nv, idx) => {
+        const rank = idx + 1;
+        let rankClass = 'normal';
+        if (rank === 1) rankClass = 'gold';
+        else if (rank === 2) rankClass = 'silver';
+        else if (rank === 3) rankClass = 'bronze';
+
+        const pct = ((nv.so_ho_da_lam / maxNV) * 100).toFixed(0);
+        nvBody.innerHTML += `
+            <tr>
+                <td style="text-align:center"><span class="rank-badge ${rankClass}">${rank}</span></td>
+                <td class="nv-name">${nv.ho_ten}</td>
+                <td>${nv.ma_nv || '—'}</td>
+                <td>${nv.khu_vuc || '—'}</td>
+                <td style="font-weight:700;color:var(--green)">${nv.so_ho_da_lam}</td>
+                <td>
+                    <div class="bar-cell">
+                        <div class="bar-track">
+                            <div class="bar-fill green" style="width: ${pct}%"></div>
+                        </div>
+                        <span class="bar-pct">${nv.so_ho_da_lam}</span>
+                    </div>
+                </td>
+            </tr>`;
+    });
+
+    // Top phường table
+    const tbody = document.getElementById('topPhuongBody');
+    tbody.innerHTML = '';
+    data.top_phuong.forEach(p => {
+        const pct = ((p.chua_dk / p.tong) * 100).toFixed(0);
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.phuong_xa}</td>
+                <td>${p.quan_huyen}</td>
+                <td>${p.tong}</td>
+                <td><span class="status-dot red"></span>${p.chua_dk}</td>
+                <td>
+                    <div class="bar-cell">
+                        <div class="bar-track">
+                            <div class="bar-fill red" style="width: ${pct}%"></div>
+                        </div>
+                        <span class="bar-pct">${pct}%</span>
+                    </div>
+                </td>
+            </tr>`;
+    });
+}
+
+loadStats();
+</script>
+</body>
+</html>

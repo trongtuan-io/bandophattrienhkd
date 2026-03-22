@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch sử duyệt — Bản đồ phát triển HKD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --ink: #1a1a2e;
+            --ink-mid: #3d3d56;
+            --ink-soft: #5c5c7a;
+            --ink-muted: #9898ad;
+            --surface: #f5f5f0;
+            --surface-alt: #eeeee8;
+            --white: #ffffff;
+            --red: #c0392b;
+            --red-pale: #fdecea;
+            --green: #27864e;
+            --green-pale: #e8f5ec;
+            --accent: #2c5282;
+            --accent-hover: #1e3a5f;
+            --accent-pale: #e8eef5;
+            --orange: #d35400;
+            --orange-pale: #fdf2e9;
+            --border: #d4d4cc;
+            --border-light: #e5e5df;
+            --radius: 6px;
+        }
+
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            color: var(--ink);
+            background: var(--surface);
+            min-height: 100vh;
+        }
+
+        .topbar {
+            height: 52px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+        }
+
+        .topbar-left { display: flex; align-items: center; gap: 16px; }
+
+        .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; color: var(--ink); }
+        .brand span { color: var(--red); }
+
+        .topbar-nav { display: flex; gap: 4px; }
+        .topbar-nav a {
+            padding: 6px 14px; border-radius: var(--radius); font-size: 13px;
+            font-weight: 500; color: var(--ink-soft); text-decoration: none; transition: all 0.12s;
+        }
+        .topbar-nav a:hover { background: var(--surface); color: var(--ink); }
+        .topbar-nav a.active { background: var(--accent-pale); color: var(--accent); }
+
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+        .user-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-mid); }
+        .user-avatar {
+            width: 28px; height: 28px; border-radius: 50%; background: var(--accent-pale);
+            color: var(--accent); display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700;
+        }
+
+        .role-tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 3px; }
+        .role-tag.admin { background: var(--red-pale); color: var(--red); }
+        .role-tag.kiem_duyet { background: #e8d5f5; color: #7b2d8e; }
+
+        .btn-sm {
+            padding: 6px 12px; border-radius: var(--radius); font-size: 12px; font-weight: 500;
+            text-decoration: none; border: 1px solid var(--border); color: var(--ink-soft);
+            background: var(--white); cursor: pointer; font-family: inherit; transition: all 0.12s;
+        }
+        .btn-sm:hover { border-color: var(--ink-soft); color: var(--ink); }
+
+        .page-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 72px 24px 40px;
+        }
+
+        .page-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px; }
+        .page-subtitle { font-size: 14px; color: var(--ink-muted); margin-bottom: 24px; }
+
+        .table-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        thead th {
+            text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-muted);
+            background: var(--surface); border-bottom: 1px solid var(--border-light);
+        }
+
+        tbody td {
+            padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border-light);
+            vertical-align: top;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: var(--surface); }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge.duyet { background: var(--green-pale); color: var(--green); }
+        .badge.tu_choi { background: var(--red-pale); color: var(--red); }
+        .badge.gui_duyet { background: var(--orange-pale); color: var(--orange); }
+
+        .empty-state {
+            text-align: center; padding: 60px 20px; color: var(--ink-muted);
+        }
+        .empty-state h3 { font-size: 18px; margin-bottom: 8px; }
+
+        .filter-bar {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--ink-muted);
+        }
+        .filter-group select,
+        .filter-group input {
+            padding: 7px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-family: inherit;
+            color: var(--ink);
+            background: var(--white);
+            min-width: 140px;
+        }
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+        .btn-filter {
+            padding: 7px 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            transition: all 0.12s;
+        }
+        .btn-filter.primary {
+            background: var(--accent);
+            color: var(--white);
+        }
+        .btn-filter.primary:hover { background: var(--accent-hover); }
+        .btn-filter.secondary {
+            background: var(--surface);
+            color: var(--ink-soft);
+            border: 1px solid var(--border);
+        }
+        .btn-filter.secondary:hover { background: var(--surface-alt); }
+
+        .result-count {
+            font-size: 13px;
+            color: var(--ink-muted);
+            margin-bottom: 12px;
+        }
+        .result-count strong { color: var(--ink); }
+
+        @media (max-width: 768px) {
+            table { font-size: 12px; }
+            thead th, tbody td { padding: 8px 10px; }
+            .filter-bar { flex-direction: column; }
+            .filter-group select, .filter-group input { min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="/" class="brand">Bản đồ <span>HKD</span></a>
+        <nav class="topbar-nav">
+            <a href="/">Bản đồ</a>
+            <a href="/dashboard">Thống kê</a>
+            {% if role in ('admin', 'kiem_duyet') %}
+            <a href="/duyet">Duyệt</a>
+            <a href="/lich-su-duyet" class="active">Lịch sử duyệt</a>
+            {% endif %}
+        </nav>
+    </div>
+    <div class="topbar-right">
+        {% if user %}
+            <div class="user-badge">
+                <div class="user-avatar">{{ user.full_name[0] }}</div>
+                <span>{{ user.full_name }}</span>
+                <span class="role-tag {{ role }}">
+                    {% if role == 'admin' %}Admin{% elif role == 'kiem_duyet' %}Kiểm duyệt{% endif %}
+                </span>
+            </div>
+            <a href="/logout" class="btn-sm">Đăng xuất</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="page-content">
+    <h1 class="page-title">Lịch sử duyệt</h1>
+    <p class="page-subtitle">Xem lại tất cả các lần duyệt / từ chối / gửi duyệt hộ kinh doanh</p>
+
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label>Hành động</label>
+            <select id="filterAction">
+                <option value="">Tất cả</option>
+                <option value="gui_duyet">Gửi duyệt</option>
+                <option value="duyet">Duyệt</option>
+                <option value="tu_choi">Từ chối</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Quận/Huyện</label>
+            <select id="filterQuan">
+                <option value="">Tất cả</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Phường/Xã</label>
+            <select id="filterPhuong">
+                <option value="">Tất cả</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Từ ngày</label>
+            <input type="date" id="filterFromDate">
+        </div>
+        <div class="filter-group">
+            <label>Đến ngày</label>
+            <input type="date" id="filterToDate">
+        </div>
+        <div class="filter-group">
+            <label>Tìm kiếm</label>
+            <input type="text" id="filterKeyword" placeholder="Tên, MST, người duyệt...">
+        </div>
+        <div class="filter-actions">
+            <button class="btn-filter primary" onclick="applyFilter()">Lọc</button>
+            <button class="btn-filter secondary" onclick="resetFilter()">Xóa lọc</button>
+        </div>
+    </div>
+
+    <p class="result-count" id="resultCount"></p>
+
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Thời gian</th>
+                    <th>Hành động</th>
+                    <th>Hộ kinh doanh</th>
+                    <th>Khu vực</th>
+                    <th>Người thực hiện</th>
+                    <th>Người gửi duyệt</th>
+                    <th>Ghi chú</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody">
+                <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--ink-muted)">Đang tải...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+async function loadFilters() {
+    const resp = await fetch('/api/filters');
+    const data = await resp.json();
+
+    const quanSelect = document.getElementById('filterQuan');
+    const phuongSelect = document.getElementById('filterPhuong');
+
+    const quans = data.quan_huyen || [];
+    quans.forEach(q => {
+        quanSelect.innerHTML += `<option value="${q}">${q}</option>`;
+    });
+
+    window._filterPhuongs = data.phuong_xa || [];
+    updatePhuongOptions();
+
+    quanSelect.addEventListener('change', updatePhuongOptions);
+}
+
+function updatePhuongOptions() {
+    const quan = document.getElementById('filterQuan').value;
+    const phuongSelect = document.getElementById('filterPhuong');
+    phuongSelect.innerHTML = '<option value="">Tất cả</option>';
+
+    let phuongs = window._filterPhuongs || [];
+    if (quan) {
+        phuongs = phuongs.filter(p => p.quan === quan);
+    }
+    const names = [...new Set(phuongs.map(p => p.ten))].sort();
+    names.forEach(p => {
+        phuongSelect.innerHTML += `<option value="${p}">${p}</option>`;
+    });
+}
+
+async function loadHistory() {
+    const params = new URLSearchParams();
+    const action = document.getElementById('filterAction').value;
+    const quan = document.getElementById('filterQuan').value;
+    const phuong = document.getElementById('filterPhuong').value;
+    const fromDate = document.getElementById('filterFromDate').value;
+    const toDate = document.getElementById('filterToDate').value;
+    const keyword = document.getElementById('filterKeyword').value.trim();
+
+    if (action) params.set('hanh_dong', action);
+    if (quan) params.set('quan_huyen', quan);
+    if (phuong) params.set('phuong_xa', phuong);
+    if (fromDate) params.set('tu_ngay', fromDate);
+    if (toDate) params.set('den_ngay', toDate);
+    if (keyword) params.set('keyword', keyword);
+
+    const resp = await fetch('/api/lich-su-duyet?' + params.toString());
+    const data = await resp.json();
+    const tbody = document.getElementById('historyBody');
+
+    document.getElementById('resultCount').innerHTML = `Tìm thấy <strong>${data.length}</strong> kết quả`;
+
+    if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><h3>Không có kết quả</h3><p>Không tìm thấy lịch sử duyệt phù hợp với bộ lọc.</p></div></td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    data.forEach(row => {
+        let actionLabel = row.hanh_dong;
+        let badgeClass = row.hanh_dong;
+        if (row.hanh_dong === 'duyet') actionLabel = 'Duyệt';
+        else if (row.hanh_dong === 'tu_choi') actionLabel = 'Từ chối';
+        else if (row.hanh_dong === 'gui_duyet') actionLabel = 'Gửi duyệt';
+
+        const time = row.thoi_gian ? new Date(row.thoi_gian).toLocaleString('vi-VN') : '—';
+
+        tbody.innerHTML += `
+            <tr>
+                <td style="white-space:nowrap">${time}</td>
+                <td><span class="badge ${badgeClass}">${actionLabel}</span></td>
+                <td><strong>${row.ten_cua_hang || row.ten_chu_ho || '—'}</strong><br><small style="color:var(--ink-muted)">${row.ten_chu_ho || ''} ${row.mst ? '· ' + row.mst : ''}</small></td>
+                <td>${row.phuong_xa || ''}, ${row.quan_huyen || ''}</td>
+                <td><strong>${row.nguoi_duyet_ten || '—'}</strong><br><small style="color:var(--ink-muted)">${row.nguoi_duyet_ma || ''}</small></td>
+                <td>${row.nguoi_gui_ten ? row.nguoi_gui_ten + (row.nguoi_gui_ma ? ' (' + row.nguoi_gui_ma + ')' : '') : '—'}</td>
+                <td style="max-width:200px;word-break:break-word">${row.ghi_chu || '—'}</td>
+            </tr>`;
+    });
+}
+
+function applyFilter() {
+    loadHistory();
+}
+
+function resetFilter() {
+    document.getElementById('filterAction').value = '';
+    document.getElementById('filterQuan').value = '';
+    document.getElementById('filterFromDate').value = '';
+    document.getElementById('filterToDate').value = '';
+    document.getElementById('filterKeyword').value = '';
+    updatePhuongOptions();
+    document.getElementById('filterPhuong').value = '';
+    loadHistory();
+}
+
+// Enter key to search
+document.getElementById('filterKeyword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') applyFilter();
+});
+
+loadFilters();
+loadHistory();
+</script>
+</body>
+</html>

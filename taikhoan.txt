@@ -1,0 +1,71 @@
+====================================
+  BanDoThue - Tài khoản hệ thống
+====================================
+
+[QUẢN TRỊ VIÊN]
+  Tên đăng nhập: admin
+  Mật khẩu:      admin123
+  Quyền:         Toàn quyền quản lý, duyệt, cấp quyền
+
+[CÁN BỘ / NHÂN VIÊN]
+  Tên đăng nhập: canbo_badinh
+  Mật khẩu:      123456
+  Mã cán bộ:     CB001
+  Quyền:         Gửi yêu cầu duyệt hộ trong khu vực Ba Đình
+
+[KIỂM DUYỆT VIÊN]
+  Tên đăng nhập: kiemduyetvien
+  Mật khẩu:      123456
+  Mã cán bộ:     KD001
+  Quyền:         Duyệt/từ chối yêu cầu chuyển trạng thái
+
+[NGƯỜI DÂN]
+  Không cần đăng nhập
+  Quyền: Xem bản đồ công khai (không thấy MST, ghi chú)
+
+====================================
+  Vai trò (Roles)
+====================================
+  admin      - Toàn quyền + cấp quyền kiểm duyệt
+  kiem_duyet - Duyệt/từ chối đỏ->xanh
+  nv         - Cán bộ (gửi yêu cầu duyệt, +1 điểm khi được duyệt)
+  viewer     - Chỉ xem
+
+====================================
+  Luồng duyệt mới
+====================================
+  1. Cán bộ (nv) đến hộ đỏ -> nhấn "Gửi duyệt" -> trạng thái thành CAM (cho_duyet)
+  2. Kiểm duyệt viên / Admin vào trang /duyet -> Duyệt hoặc Từ chối
+  3. Nếu Duyệt -> hộ chuyển XANH, cán bộ được +1 điểm
+  4. Nếu Từ chối -> hộ quay lại ĐỎ
+
+====================================
+  Hệ thống điểm & Vinh danh
+====================================
+  - Mỗi lần cán bộ gửi duyệt thành công = +1 điểm
+  - Dashboard hiển thị Top 10 cán bộ có điểm cao nhất
+  - Biểu đồ tròn 3 phần: Hoàn thành / Đang tiếp cận / Chưa tiếp cận
+
+====================================
+  Nhân viên mẫu
+====================================
+  NV001 - Trần Văn Hùng    (Ba Đình)
+  NV002 - Lê Thị Mai       (Ba Đình)
+  NV003 - Phạm Đức Toàn    (Đống Đa)
+  NV004 - Nguyễn Hoàng Nam (Đống Đa)
+  NV005 - Võ Thị Hạnh      (Hai Bà Trưng)
+
+====================================
+  MySQL
+====================================
+  Host:     127.0.0.1
+  User:     root
+  Password: root
+  Database: bandothue
+
+====================================
+  Chạy ứng dụng
+====================================
+  pip install flask pymysql openpyxl
+  python app.py
+  Truy cập: http://localhost:5000
